@@ -16,7 +16,8 @@ class TaskStatusUpdate(BaseModel):
 
 
 class SubtaskToggle(BaseModel):
-    completed: bool
+    completed: Optional[bool] = None
+    title: Optional[str] = None
 
 
 class SubtaskBase(BaseModel):

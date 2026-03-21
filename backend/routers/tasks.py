@@ -96,18 +96,65 @@ def advance_task_status(task_id: str, body: TaskStatusUpdate, db: Session = Depe
 
 
 # T-012: PATCH /api/subtasks/{subtask_id} — 勾选/取消子任务
-@router.patch("/subtasks/{subtask_id}")
-def toggle_subtask(subtask_id: str, body: SubtaskToggle, db: Session = Depends(get_db)):
+# POST /api/tasks/{task_id}/subtasks — 新建子任务
+@router.post("/tasks/{task_id}/subtasks")
+def create_subtask(task_id: str, body: dict, db: Session = Depends(get_db)):
+    try:
+        t = db.query(Task).filter(Task.id == task_id).first()
+        if not t:
+            return {"data": None, "error": f"Task {task_id} not found"}
+
+        subtask_id = f"ST-{len(db.query(Subtask).all()) + 1:03d}"
+        new_subtask = Subtask(
+            id=subtask_id,
+            task_id=task_id,
+            title=body.get("title", ""),
+            completed=False,
+        )
+        db.add(new_subtask)
+        db.commit()
+        db.refresh(new_subtask)
+        return {"data": _build_task_response(t, db), "error": None}
+    except Exception as e:
+        db.rollback()
+        return {"data": None, "error": str(e)}
+
+
+# DELETE /api/subtasks/{subtask_id} — 删除子任务
+@router.delete("/subtasks/{subtask_id}")
+def delete_subtask(subtask_id: str, db: Session = Depends(get_db)):
     try:
         s = db.query(Subtask).filter(Subtask.id == subtask_id).first()
         if not s:
             return {"data": None, "error": f"Subtask {subtask_id} not found"}
 
-        s.completed = body.completed
-        if body.completed:
-            s.completed_at = date.today()
-        else:
-            s.completed_at = None
+        task_id = s.task_id
+        db.delete(s)
+        db.commit()
+
+        t = db.query(Task).filter(Task.id == task_id).first()
+        return {"data": _build_task_response(t, db) if t else None, "error": None}
+    except Exception as e:
+        db.rollback()
+        return {"data": None, "error": str(e)}
+
+
+@router.patch("/subtasks/{subtask_id}")
+def update_subtask(subtask_id: str, body: SubtaskToggle, db: Session = Depends(get_db)):
+    try:
+        s = db.query(Subtask).filter(Subtask.id == subtask_id).first()
+        if not s:
+            return {"data": None, "error": f"Subtask {subtask_id} not found"}
+
+        if body.title is not None:
+            s.title = body.title
+
+        if body.completed is not None:
+            s.completed = body.completed
+            if body.completed:
+                s.completed_at = date.today()
+            else:
+                s.completed_at = None
 
         db.commit()
 
@@ -116,8 +163,7 @@ def toggle_subtask(subtask_id: str, body: SubtaskToggle, db: Session = Depends(g
             t = db.query(Task).filter(Task.id == s.task_id).first()
             if t:
                 all_subtasks = db.query(Subtask).filter(Subtask.task_id == t.id).all()
-                if all(s.completed for s in all_subtasks):
-                    # 阶段推进：open → in-progress → review → done
+                if all(st.completed for st in all_subtasks):
                     status_order = ["open", "in-progress", "review", "done"]
                     if t.status in status_order:
                         idx = status_order.index(t.status)
