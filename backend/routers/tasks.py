@@ -11,6 +11,7 @@ router = APIRouter()
 
 def _build_task_response(t: Task, db: Session) -> dict:
     """Build a full task dict including subtasks."""
+    db.expire_all()  # Ensure session sees latest committed data
     subtasks = db.query(Subtask).filter(Subtask.task_id == t.id).all()
     return {
         "id": t.id,
@@ -104,7 +105,13 @@ def create_subtask(task_id: str, body: dict, db: Session = Depends(get_db)):
         if not t:
             return {"data": None, "error": f"Task {task_id} not found"}
 
-        subtask_id = f"ST-{len(db.query(Subtask).all()) + 1:03d}"
+        import re
+        all_ids = db.query(Subtask.id).all()
+        max_num = 0
+        for (sid,) in all_ids:
+            m = re.match(r'ST-(\d+)', sid)
+            if m: max_num = max(max_num, int(m.group(1)))
+        subtask_id = f"ST-{max_num + 1:03d}"
         new_subtask = Subtask(
             id=subtask_id,
             task_id=task_id,
