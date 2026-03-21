@@ -3,6 +3,22 @@ from datetime import date, datetime
 from typing import Optional, Union
 
 
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    note: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    end_date: Optional[date] = None
+
+
+class TaskStatusUpdate(BaseModel):
+    status: str  # in-progress | review | done
+
+
+class SubtaskToggle(BaseModel):
+    completed: bool
+
+
 class SubtaskBase(BaseModel):
     id: str
     task_id: str

@@ -8,6 +8,44 @@ from backend.schemas import ApiResponse, Project as ProjectSchema
 router = APIRouter()
 
 
+def build_task_response(task: Task) -> dict:
+    """Build a task response with subtasks."""
+    subtasks = []
+    for st in task.subtasks:
+        subtasks.append({
+            "id": st.id,
+            "task_id": st.task_id,
+            "title": st.title,
+            "completed": st.completed,
+            "completed_at": st.completed_at,
+            "created_at": st.created_at,
+        })
+    return {
+        "id": task.id,
+        "project_id": task.project_id,
+        "title": task.title,
+        "owner": task.owner,
+        "status": task.status,
+        "priority": task.priority,
+        "start_date": task.start_date,
+        "end_date": task.end_date,
+        "completed_at": task.completed_at,
+        "note": task.note or "",
+        "subtasks": subtasks,
+        "created_at": task.created_at,
+        "updated_at": task.updated_at,
+    }
+
+
+@router.get("/projects/{project_id}/tasks")
+def get_project_tasks(project_id: str, db: Session = Depends(get_db)):
+    try:
+        tasks = db.query(Task).filter(Task.project_id == project_id).all()
+        return {"data": [build_task_response(t) for t in tasks], "error": None}
+    except Exception as e:
+        return {"data": None, "error": str(e)}
+
+
 @router.get("/projects")
 def get_projects(db: Session = Depends(get_db)):
     try:
