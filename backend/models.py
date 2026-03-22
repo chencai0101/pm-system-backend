@@ -19,54 +19,6 @@ class Project(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
-    tags = relationship("Tag", back_populates="project", cascade="all, delete-orphan")
-
-
-class Member(Base):
-    __tablename__ = "members"
-
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    role = Column(String, default="member")
-    wecom_user_id = Column(String, unique=True, nullable=False)
-    wecom_name = Column(String, default="")
-    wecom_avatar = Column(String, default="")
-    mobile = Column(String, default="")
-    department_id = Column(String, default="1")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class Tag(Base):
-    __tablename__ = "tags"
-
-    id = Column(String, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    color = Column(String, default="blue")
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    projects = relationship("Project", back_populates="tags")
-
-
-class PagePermission(Base):
-    __tablename__ = "page_permissions"
-
-    id = Column(String, primary_key=True)
-    member_id = Column(String, ForeignKey("members.id"), nullable=False)
-    page_key = Column(String, nullable=False)
-    enabled = Column(Boolean, default=False)
-    member = relationship("Member")
-
-
-class ProjectPermission(Base):
-    __tablename__ = "project_permissions"
-
-    id = Column(String, primary_key=True)
-    member_id = Column(String, ForeignKey("members.id"), nullable=False)
-    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
-    can_edit = Column(Boolean, default=True)
-    member = relationship("Member")
-    project = relationship("Project")
 
 
 class Task(Base):
