@@ -85,9 +85,12 @@ def create_project_task(project_id: str, body: dict, db: Session = Depends(get_d
 @router.patch("/projects/{project_id}")
 def update_project(project_id: str, body: dict, db: Session = Depends(get_db)):
     try:
+        import uuid
         proj = db.query(Project).filter(Project.id == project_id).first()
         if not proj:
             return {"data": None, "error": f"Project {project_id} not found"}
+
+        owner_changed = "owner" in body and body["owner"] != proj.owner
 
         if "name" in body:
             proj.name = body["name"]
@@ -103,6 +106,44 @@ def update_project(project_id: str, body: dict, db: Session = Depends(get_db)):
             proj.description = body["description"]
         if "status" in body:
             proj.status = body["status"]
+
+        # Sync ProjectPermission when owner changes
+        if owner_changed:
+            new_owner_name = body["owner"]
+            new_owner = (
+                db.query(Member)
+                .filter(Member.name == new_owner_name)
+                .first()
+            )
+            # Remove old owner's permission if exists
+            old_owner = (
+                db.query(Member)
+                .filter(Member.name == proj.owner)
+                .first()
+            )
+            if old_owner:
+                db.query(ProjectPermission).filter(
+                    ProjectPermission.member_id == old_owner.id,
+                    ProjectPermission.project_id == proj.id,
+                ).delete()
+            # Add new owner's permission if they are a registered member
+            if new_owner:
+                existing = (
+                    db.query(ProjectPermission)
+                    .filter(
+                        ProjectPermission.member_id == new_owner.id,
+                        ProjectPermission.project_id == proj.id,
+                    )
+                    .first()
+                )
+                if not existing:
+                    new_perm = ProjectPermission(
+                        id=uuid.uuid4().hex,
+                        member_id=new_owner.id,
+                        project_id=proj.id,
+                        can_edit=True,
+                    )
+                    db.add(new_perm)
 
         db.commit()
         db.refresh(proj)
