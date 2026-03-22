@@ -120,9 +120,9 @@ def delete_member(member_id: str, db: Session = Depends(get_db)):
 
 @router.get("/members/{member_id}/projects")
 def get_member_projects(member_id: str, db: Session = Depends(get_db)):
-    """Return projects associated with this member via project_permissions."""
+    """Return projects associated with this member via project_permissions, with full project details."""
     try:
-        from backend.models import ProjectPermission, Project
+        from backend.models import ProjectPermission, Project, Task
         perms = (
             db.query(ProjectPermission)
             .filter(ProjectPermission.member_id == member_id)
@@ -132,9 +132,23 @@ def get_member_projects(member_id: str, db: Session = Depends(get_db)):
         for p in perms:
             proj = db.query(Project).filter(Project.id == p.project_id).first()
             if proj:
+                total = db.query(Task).filter(Task.project_id == proj.id).count()
+                completed = (
+                    db.query(Task)
+                    .filter(Task.project_id == proj.id, Task.status == "done")
+                    .count()
+                )
+                progress = round(completed / total, 3) if total > 0 else 0.0
                 projects.append({
                     "id": proj.id,
                     "name": proj.name,
+                    "owner": proj.owner,
+                    "start_date": proj.start_date,
+                    "end_date": proj.end_date,
+                    "status": proj.status,
+                    "task_count": total,
+                    "completed_count": completed,
+                    "progress": progress,
                     "can_edit": p.can_edit,
                 })
         return {"data": projects, "error": None}
