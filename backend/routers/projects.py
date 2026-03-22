@@ -82,6 +82,61 @@ def create_project_task(project_id: str, body: dict, db: Session = Depends(get_d
         return {"data": None, "error": str(e)}
 
 
+@router.patch("/projects/{project_id}")
+def update_project(project_id: str, body: dict, db: Session = Depends(get_db)):
+    try:
+        proj = db.query(Project).filter(Project.id == project_id).first()
+        if not proj:
+            return {"data": None, "error": f"Project {project_id} not found"}
+
+        if "name" in body:
+            proj.name = body["name"]
+        if "owner" in body:
+            proj.owner = body["owner"]
+        if "start_date" in body:
+            from datetime import date as date_cls
+            proj.start_date = date_cls.fromisoformat(body["start_date"])
+        if "end_date" in body:
+            from datetime import date as date_cls
+            proj.end_date = date_cls.fromisoformat(body["end_date"])
+        if "description" in body:
+            proj.description = body["description"]
+        if "status" in body:
+            proj.status = body["status"]
+
+        db.commit()
+        db.refresh(proj)
+
+        total = db.query(Task).filter(Task.project_id == proj.id).count()
+        completed = (
+            db.query(Task)
+            .filter(Task.project_id == proj.id, Task.status == "done")
+            .count()
+        )
+        progress = completed / total if total > 0 else 0.0
+
+        return {
+            "data": {
+                "id": proj.id,
+                "name": proj.name,
+                "owner": proj.owner,
+                "start_date": proj.start_date,
+                "end_date": proj.end_date,
+                "status": proj.status,
+                "description": proj.description or "",
+                "task_count": total,
+                "completed_count": completed,
+                "progress": round(progress, 3),
+                "created_at": proj.created_at,
+                "updated_at": proj.updated_at,
+            },
+            "error": None,
+        }
+    except Exception as e:
+        db.rollback()
+        return {"data": None, "error": str(e)}
+
+
 @router.post("/projects")
 def create_project(body: dict, db: Session = Depends(get_db)):
     try:
