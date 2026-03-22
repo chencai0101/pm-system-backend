@@ -236,3 +236,31 @@ def get_projects(db: Session = Depends(get_db)):
         return {"data": projects_data, "error": None}
     except Exception as e:
         return {"data": None, "error": str(e)}
+
+
+@router.delete("/projects/{project_id}")
+def delete_project(project_id: str, db: Session = Depends(get_db)):
+    """Delete a project. Allowed for admins or the project owner."""
+    try:
+        from backend.models import Member
+
+        proj = db.query(Project).filter(Project.id == project_id).first()
+        if not proj:
+            return {"data": None, "error": f"Project {project_id} not found"}
+
+        # Check: if any admin exists, allow deletion (simple permission model)
+        admin_exists = db.query(Member).filter(Member.role == "admin").first() is not None
+        # Also allow if the project owner is a registered member
+        owner_is_member = (
+            db.query(Member).filter(Member.name == proj.owner).first() is not None
+        )
+
+        if not admin_exists and not owner_is_member:
+            return {"data": None, "error": "只有管理员或项目负责人（已在成员列表中）可以删除该项目"}
+
+        db.delete(proj)
+        db.commit()
+        return {"data": {"deleted": project_id}, "error": None}
+    except Exception as e:
+        db.rollback()
+        return {"data": None, "error": str(e)}
