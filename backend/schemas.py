@@ -85,3 +85,42 @@ class Project(ProjectBase):
 class ApiResponse(BaseModel):
     data: Optional[Union[dict, list]] = None
     error: Optional[str] = None
+
+
+class MemberBase(BaseModel):
+    name: str
+    role: str = "member"
+    wecom_user_id: str
+    wecom_name: Optional[str] = ""
+    wecom_avatar: Optional[str] = ""
+    mobile: Optional[str] = ""
+    department_id: Optional[str] = "1"
+
+
+class MemberCreate(MemberBase):
+    pass
+
+
+class MemberUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    wecom_user_id: Optional[str] = None
+    wecom_name: Optional[str] = None
+    wecom_avatar: Optional[str] = None
+    mobile: Optional[str] = None
+
+
+class Member(BaseModel):
+    id: str
+    name: str
+    role: str
+    wecom_user_id: str
+    wecom_name: str
+    wecom_avatar: str
+    mobile: str
+    department_id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -52,3 +52,18 @@ class Subtask(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     task = relationship("Task", back_populates="subtasks")
+
+
+class Member(Base):
+    __tablename__ = "members"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    role = Column(String, default="member")  # "admin" | "member"
+    wecom_user_id = Column(String, unique=True, nullable=False)
+    wecom_name = Column(String, default="")
+    wecom_avatar = Column(String, default="")
+    mobile = Column(String, default="")
+    department_id = Column(String, default="1")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
