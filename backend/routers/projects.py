@@ -82,6 +82,56 @@ def create_project_task(project_id: str, body: dict, db: Session = Depends(get_d
         return {"data": None, "error": str(e)}
 
 
+@router.post("/projects")
+def create_project(body: dict, db: Session = Depends(get_db)):
+    try:
+        import re
+        from datetime import datetime
+
+        all_project_ids = db.query(Project.id).all()
+        max_num = 0
+        for (pid,) in all_project_ids:
+            m = re.match(r'P-(\d+)', pid)
+            if m:
+                max_num = max(max_num, int(m.group(1)))
+        project_id = f"P-{max_num + 1:03d}"
+
+        from datetime import date as date_cls
+        project = Project(
+            id=project_id,
+            name=body.get("name", ""),
+            owner=body.get("owner", ""),
+            start_date=date_cls.fromisoformat(body.get("start_date", "")),
+            end_date=date_cls.fromisoformat(body.get("end_date", "")),
+            status="open",
+            description=body.get("description", ""),
+        )
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+
+        return {
+            "data": {
+                "id": project.id,
+                "name": project.name,
+                "owner": project.owner,
+                "start_date": project.start_date,
+                "end_date": project.end_date,
+                "status": project.status,
+                "description": project.description or "",
+                "task_count": 0,
+                "completed_count": 0,
+                "progress": 0.0,
+                "created_at": project.created_at,
+                "updated_at": project.updated_at,
+            },
+            "error": None,
+        }
+    except Exception as e:
+        db.rollback()
+        return {"data": None, "error": str(e)}
+
+
 @router.get("/projects")
 def get_projects(db: Session = Depends(get_db)):
     try:
