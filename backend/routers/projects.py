@@ -23,6 +23,7 @@ def build_task_response(task: Task) -> dict:
     return {
         "id": task.id,
         "project_id": task.project_id,
+        "parent_id": None,
         "title": task.title,
         "owner": task.owner,
         "status": task.status,
@@ -43,6 +44,41 @@ def get_project_tasks(project_id: str, db: Session = Depends(get_db)):
         tasks = db.query(Task).filter(Task.project_id == project_id).all()
         return {"data": [build_task_response(t) for t in tasks], "error": None}
     except Exception as e:
+        return {"data": None, "error": str(e)}
+
+
+@router.post("/projects/{project_id}/tasks")
+def create_project_task(project_id: str, body: dict, db: Session = Depends(get_db)):
+    try:
+        proj = db.query(Project).filter(Project.id == project_id).first()
+        if not proj:
+            return {"data": None, "error": f"Project {project_id} not found"}
+
+        import re
+        all_task_ids = db.query(Task.id).all()
+        max_num = 0
+        for (tid,) in all_task_ids:
+            m = re.match(r'T-(\d+)', tid)
+            if m: max_num = max(max_num, int(m.group(1)))
+        task_id = f"T-{max_num + 1:03d}"
+
+        task = Task(
+            id=task_id,
+            project_id=project_id,
+            title=body.get("title", ""),
+            owner=body.get("owner", proj.owner),
+            status=body.get("status", "open"),
+            priority=body.get("priority", "medium"),
+            start_date=proj.start_date,
+            end_date=body.get("end_date") or proj.end_date,
+            note=body.get("note", ""),
+        )
+        db.add(task)
+        db.commit()
+        db.refresh(task)
+        return {"data": build_task_response(task), "error": None}
+    except Exception as e:
+        db.rollback()
         return {"data": None, "error": str(e)}
 
 
