@@ -116,3 +116,27 @@ def delete_member(member_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         return {"data": None, "error": str(e)}
+
+
+@router.get("/members/{member_id}/projects")
+def get_member_projects(member_id: str, db: Session = Depends(get_db)):
+    """Return projects associated with this member via project_permissions."""
+    try:
+        from backend.models import ProjectPermission, Project
+        perms = (
+            db.query(ProjectPermission)
+            .filter(ProjectPermission.member_id == member_id)
+            .all()
+        )
+        projects = []
+        for p in perms:
+            proj = db.query(Project).filter(Project.id == p.project_id).first()
+            if proj:
+                projects.append({
+                    "id": proj.id,
+                    "name": proj.name,
+                    "can_edit": p.can_edit,
+                })
+        return {"data": projects, "error": None}
+    except Exception as e:
+        return {"data": None, "error": str(e)}

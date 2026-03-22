@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import Project, Task
+from backend.models import Project, Task, Member, ProjectPermission
 from backend.schemas import ApiResponse, Project as ProjectSchema
 
 router = APIRouter()
@@ -141,6 +141,7 @@ def update_project(project_id: str, body: dict, db: Session = Depends(get_db)):
 def create_project(body: dict, db: Session = Depends(get_db)):
     try:
         import re
+        import uuid
         from datetime import datetime
 
         all_project_ids = db.query(Project.id).all()
@@ -164,6 +165,20 @@ def create_project(body: dict, db: Session = Depends(get_db)):
         db.add(project)
         db.commit()
         db.refresh(project)
+
+        # Auto-create ProjectPermission for the project owner
+        owner_name = body.get("owner", "")
+        if owner_name:
+            owner_member = db.query(Member).filter(Member.name == owner_name).first()
+            if owner_member:
+                perm = ProjectPermission(
+                    id=uuid.uuid4().hex,
+                    member_id=owner_member.id,
+                    project_id=project.id,
+                    can_edit=True,
+                )
+                db.add(perm)
+                db.commit()
 
         return {
             "data": {

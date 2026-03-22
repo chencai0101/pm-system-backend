@@ -67,3 +67,14 @@ class Member(Base):
     department_id = Column(String, default="1")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ProjectPermission(Base):
+    __tablename__ = "project_permissions"
+
+    id = Column(String, primary_key=True)
+    member_id = Column(String, ForeignKey("members.id"), nullable=False)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    can_edit = Column(Boolean, default=True)
+    member = relationship("Member")
+    project = relationship("Project")
