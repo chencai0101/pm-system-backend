@@ -11,6 +11,8 @@ class Project(Base):
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     owner = Column(String, nullable=False)
+    members = Column(Text, default="")  # 参与人，多个用顿号分隔
+    resources = Column(Text, default="")  # 所需资源/外部资源
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     status = Column(String, default="未开始")

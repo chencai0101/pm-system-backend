@@ -65,6 +65,8 @@ class ProjectBase(BaseModel):
     id: str
     name: str
     owner: str
+    members: str = ""
+    resources: str = ""
     start_date: date
     end_date: date
     status: str

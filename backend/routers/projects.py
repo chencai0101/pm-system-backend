@@ -96,6 +96,10 @@ def update_project(project_id: str, body: dict, db: Session = Depends(get_db)):
             proj.name = body["name"]
         if "owner" in body:
             proj.owner = body["owner"]
+        if "members" in body:
+            proj.members = body["members"]
+        if "resources" in body:
+            proj.resources = body["resources"]
         if "start_date" in body:
             from datetime import date as date_cls
             proj.start_date = date_cls.fromisoformat(body["start_date"])
@@ -161,6 +165,8 @@ def update_project(project_id: str, body: dict, db: Session = Depends(get_db)):
                 "id": proj.id,
                 "name": proj.name,
                 "owner": proj.owner,
+                "members": proj.members or "",
+                "resources": proj.resources or "",
                 "start_date": proj.start_date,
                 "end_date": proj.end_date,
                 "status": proj.status,
@@ -198,6 +204,8 @@ def create_project(body: dict, db: Session = Depends(get_db)):
             id=project_id,
             name=body.get("name", ""),
             owner=body.get("owner", ""),
+            members=body.get("members", ""),
+            resources=body.get("resources", ""),
             start_date=date_cls.fromisoformat(body.get("start_date", "")),
             end_date=date_cls.fromisoformat(body.get("end_date", "")),
             status="open",
@@ -226,6 +234,8 @@ def create_project(body: dict, db: Session = Depends(get_db)):
                 "id": project.id,
                 "name": project.name,
                 "owner": project.owner,
+                "members": project.members or "",
+                "resources": project.resources or "",
                 "start_date": project.start_date,
                 "end_date": project.end_date,
                 "status": project.status,
@@ -262,6 +272,8 @@ def get_projects(db: Session = Depends(get_db)):
                     "id": p.id,
                     "name": p.name,
                     "owner": p.owner,
+                    "members": p.members or "",
+                    "resources": p.resources or "",
                     "start_date": p.start_date,
                     "end_date": p.end_date,
                     "status": p.status,
