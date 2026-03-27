@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import init_db
-from backend.routers import members, projects, tasks
+from backend.routers import members, projects, tasks, weekly_report
 
 app = FastAPI(title="PM System API", version="1.0.0")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(projects.router, prefix="/api", tags=["projects"])
 app.include_router(tasks.router, prefix="/api", tags=["tasks"])
 app.include_router(members.router, prefix="/api", tags=["members"])
+app.include_router(weekly_report.router, prefix="/api", tags=["weekly-report"])
 
 
 @app.on_event("startup")
