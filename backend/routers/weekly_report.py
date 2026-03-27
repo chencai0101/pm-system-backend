@@ -95,12 +95,9 @@ class ProjectProgress(BaseModel):
         from_attributes = True
 
 
-class RecentTask(BaseModel):
+class RecentProject(BaseModel):
     id: str
-    project_id: str
-    project_name: str
-    tags: List[str]
-    task_title: str
+    name: str
     owner: str
     created_date: str
 
@@ -114,7 +111,7 @@ class WeeklyReportResponse(BaseModel):
     week_end: date
     alerts: List[AlertTask]
     progress: List[ProjectProgress]
-    recent: List[RecentTask]
+    recent: List[RecentProject]
 
 
 # ── Endpoint ─────────────────────────────────────────
@@ -245,27 +242,24 @@ def get_weekly_report(week_offset: int = 0, db: Session = Depends(get_db)):
     # 按项目进度降序排列
     progress_projects.sort(key=lambda x: x.progress_pct, reverse=True)
 
-    # ── 新增（本周新建的任务）─────────────────────────
-    recent_tasks = (
-        db.query(Task)
-        .filter(Task.created_at >= datetime.combine(week_start, datetime.min.time()))
-        .filter(Task.created_at <= datetime.combine(week_end, datetime.max.time()))
-        .order_by(Task.created_at.desc())
+    # ── 新增（本周新建的项目）─────────────────────────
+    recent_projects = (
+        db.query(Project)
+        .filter(Project.created_at >= datetime.combine(week_start, datetime.min.time()))
+        .filter(Project.created_at <= datetime.combine(week_end, datetime.max.time()))
+        .order_by(Project.created_at.desc())
         .all()
     )
 
-    recent = []
-    for t in recent_tasks:
-        project = db.query(Project).filter(Project.id == t.project_id).first()
-        recent.append(RecentTask(
-            id=t.id,
-            project_id=t.project_id,
-            project_name=project.name if project else "",
-            tags=[],
-            task_title=t.title,
-            owner=t.owner,
-            created_date=t.created_at.strftime("%m/%d"),
-        ))
+    recent = [
+        RecentProject(
+            id=p.id,
+            name=p.name,
+            owner=p.owner,
+            created_date=p.created_at.strftime("%m/%d"),
+        )
+        for p in recent_projects
+    ]
 
     # 周标签
     week_num = week_start.isocalendar()[1]
